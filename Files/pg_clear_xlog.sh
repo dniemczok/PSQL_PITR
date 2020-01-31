@@ -2,8 +2,9 @@
 
 DATA=`date +"%Y-%m-%d"`
 # DATET=`date +"%Y-%m-%d_%H-%M"`
+BKP_DIR='/var/lib/postgresql/BKP'
 
-pg_basebackup -Ft -D /var/lib/postgresql/BKP/$DATE
+pg_basebackup -Ft -D $BKP_DIR/$DATE
 # pg_basebackup -Ft -D /var/lib/postgresql/BKP/$DATET
 
 ARCHIVEDIR='/var/lib/postgresql/XLOG'
@@ -12,4 +13,7 @@ CHKPOINT=$(find $ARCHIVEDIR -type f -mtime +1 -name '*backup' -printf '%f\n' | s
 # CHKPOINT=$(find $ARCHIVEDIR -type f -amin +1 -name '*backup' -printf '%f\n' | sort -r | head -1)
 
 cd $ARCHIVEDIR
-/usr/bin/pg_archivecleanup $ARCHIVEDIR $CHKPOINT
+BACKUP='$BKP_DIR/$DATE'
+if [ -d "$BACKUP" ]; then
+    /usr/bin/pg_archivecleanup $ARCHIVEDIR $CHKPOINT
+fi
