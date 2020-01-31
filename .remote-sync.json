@@ -1,0 +1,19 @@
+{
+  "logger": {
+    "title": "Remote Sync"
+  },
+  "uploadOnSave": true,
+  "useAtomicWrites": true,
+  "deleteLocal": false,
+  "hostname": "10.222.222.253",
+  "port": "22025",
+  "target": "/home/ansadmin",
+  "ignore": [
+    ".remote-sync.json",
+    ".git/**"
+  ],
+  "username": "ansadmin",
+  "password": "thc401",
+  "watch": [],
+  "transport": "scp"
+}

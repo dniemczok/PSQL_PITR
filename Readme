@@ -1,0 +1,29 @@
+vi /etc/postgresql/11/main/postgresql.conf
+
+wal_level = replica
+archive_mode = on
+archive_command = 'cp %p /var/lib/postgresql/XLOG/%f'
+max_wal_senders = 2
+
+
+
+mkdir /var/lib/postgresql/XLOG/
+
+
+# Zasil Baze
+pg_basebackup -Ft -D /var/lib/postgresql/BKP/2020-01-31
+# Dosil Baze
+service postgresql stop
+
+
+/usr/lib/postgresql/12/bin/initdb -D /var/lib/postgresql/PREPROD/
+
+
+tar -xf /usr/lib/postgresql/BKP/2020-01-31/base.tar -C /var/lib/postgresql/BKP/2020-01-31/PREPROD
+tar -xf /usr/lib/postgresql/BKP/2020-01-31/pg_wal.tar -C /var/lib/postgresql/BKP/2020-01-31/PREPROD/pg_wal
+
+cp postgresql.conf /var/lib/postgresql/PREPROD/
+touch /var/lib/postgresql/PREPROD/standby.signal
+
+
+/usr/lib/postgresql/12/bin/pg_ctl -D /var/lib/postgresql/PREPROD/ -l /uvar/lib/postgresql/PREPROD/logfile_PREPROD start

@@ -1,0 +1,121 @@
+-
+  name:                        Recovery PITR
+  hosts:                       all
+  vars:
+    ver:                       1
+    tmask_dir:                 /opt/TMask
+    tmask_system:              /opt/TMask/PGSQL_CL
+    ansible_postgres_user_id:  postgres
+    ansible_postgres_group_id: postgres
+    initdb:                    /usr/lib/postgresql/12/bin/initdb
+    pg_ctl:                    /usr/lib/postgresql/12/bin/pg_ctl
+    ansadmin_home_files:       /home/ansadmin/Ansible-PGSQL_CL/Files
+    pg_wal_archive:            /var/lib/postgresql/XLOG
+    pg_basebackup:             /usr/bin/pg_basebackup
+    bkp:                       /opt/TMask/BKP
+    tst:                       /opt/TMask/TST
+  remote_user:                 root
+  become:                      yes
+  tasks:
+
+# Foldery
+
+   - name:                     Create Tmask Folder
+     file:
+       path:                   /opt/TMask/
+       state:                  directory
+      ignore_errors:           yes
+
+   - name:                     Create BKP Folder
+     file:
+       path:                   "{{bkp}}"
+       state:                  directory
+      ignore_errors:           yes
+
+      - name:                  Del TST Folder
+        command:               "rm -rf {{tst}}"
+        ignore_errors:         yes
+
+    - name:                    Create TST Folder
+      file:
+        path:                  "{{tst}}"
+        state:                 directory
+        ignore_errors:         yes
+
+    - name:                    Create XLOG Folder
+      file:
+         path:                 "{{pg_wal_archive}}"
+         state:                directory
+        ignore_errors:         yes
+
+# Backup
+
+    - name:                    All chown postgres
+    command:                   "chown -R {{ansible_postgres_user_id}}:{{ansible_postgres_user_id}} {{ tmask_system }}/{{ver}}"
+
+
+   - name:                     Backup Full
+     command:                  sudo -u {{ansible_postgres_user_id}} bash -c  "{{pg_basebackup}} -Ft -D {{bkp}}/{{ver}} "
+
+   - name:                     Backup Full
+     command:                  "kill -9 `ps -aux | grep postgres | awk -F ' ' '{print $2}'`"
+
+   - name:                     Inidtdb w tmask_system
+     command:                  {{ initdb }} -D {{tst}}
+
+
+   - name:                     Extract base.tar to /opt/TMask/BKP
+     unarchive:
+       src:                    "{{bkp}}/{{ver}}/base.tar"
+       dest:                   "{{tst}}"
+
+   - name:                     Extract pg_wal.tar to /opt/TMask/BKP
+     unarchive:
+       src:                    "{{bkp}}/{{ver}}/pg_wal.tar"
+       dest:                   "{{tst}}/pg_wal"
+
+   - name:                     Copy postgersql.conf
+     copy:
+       src:                    "./Files/postgresql{{ver}}.conf"
+       dest:                   "{{bkp}}/{{ver}}/postgresql.conf"
+       mode:                   0644
+
+   - name:                     Copy pg_hba.conf
+     copy:
+       src:                    "./Files/pg_hba.conf"
+       dest:                   "{{bkp}}/{{ver}}/pg_hba.conf"
+       mode:                   0644
+
+   - name:                     Copy standby.signal
+     copy:
+       src:                    "./Files/standby.signal"
+       dest:                   "{{bkp}}/{{ver}}/standby.signal"
+       mode:                   0644
+
+   - name:                     All chown postgres
+     command:                  "chown -R {{ansible_postgres_user_id}}:{{ansible_postgres_user_id}} {{tst}}"
+
+
+
+
+
+   - name:                     All chown root
+     command:                  "chown -R root:root {{ tmask_system }}/{{ver}}"
+
+   - name:                     Copy postgersql.conf
+     copy:
+       src:                    "./Files/postgresql{{ver}}.conf"
+       dest:                   "{{ tmask_system }}/{{ver}}/postgresql.conf"
+       mode:                   0644
+
+   - name:                     Copy pg_hba.conf
+     copy:
+       src:                    "./Files/pg_hba.conf"
+       dest:                   "{{ tmask_system }}/{{ver}}/pg_hba.conf"
+       mode:                   0644
+
+   - name:                     All chown postgres
+     command:                  "chown -R {{ansible_postgres_user_id}}:{{ansible_postgres_user_id}} {{ tmask_system }}/{{ver}}"
+
+   - name:                     Start DB tmask_system
+     command:                  sudo -u {{ansible_postgres_user_id}} bash -c  "{{ pg_ctl }} -D {{ tmask_system }}/{{ver}} -l {{ tmask_system }}/{{ver}}/logfile start"
